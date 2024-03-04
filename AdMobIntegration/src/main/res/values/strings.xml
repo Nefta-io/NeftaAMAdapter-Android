@@ -1,0 +1,14 @@
+<resources>
+  <string name="app_name">Nefta Demo</string>
+  <string name="ad_attribution">Ad</string>
+
+  <string name="customevent_banner_ad_unit_id" translatable="false">ca-app-pub-1193175835908241/3238310303</string>
+  <string name="customevent_interstitial_ad_unit_id" translatable="false">ca-app-pub-1193175835908241/2233679380</string>
+  <string name="customevent_native_ad_unit_id" translatable="false">ca-app-pub-3940256099942544/9782828514</string>
+  <string name="customevent_rewarded_ad_unit_id" translatable="false">ca-app-pub-1193175835908241/8841990779</string>
+
+  <string name="adapter_banner_ad_unit_id" translatable="false">ca-app-pub-1193175835908241/3238310303</string>
+  <string name="adapter_interstitial_ad_unit_id" translatable="false">ca-app-pub-1193175835908241/2233679380</string>
+  <string name="adapter_native_ad_unit_id" translatable="false">ca-app-pub-3940256099942544/9782828514</string>
+  <string name="adapter_rewarded_ad_unit_id" translatable="false">ca-app-pub-1193175835908241/8841990779</string>
+</resources>

@@ -1,0 +1,31 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace 'com.google.ads.mediation.neftademo'
+    compileSdk 33
+
+    defaultConfig {
+        applicationId "com.google.ads.mediation.neftademo"
+        minSdk 19
+        targetSdk 33
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            minifyEnabled false
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.1.0'
+    implementation 'com.google.android.gms:play-services-ads:22.5.0'
+
+    implementation "androidx.lifecycle:lifecycle-process:2.4.1"
+    implementation files('libs/NeftaAMAdapter-debug-1.0.0.aar')
+}
