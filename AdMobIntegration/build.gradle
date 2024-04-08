@@ -27,5 +27,5 @@ dependencies {
     implementation 'com.google.android.gms:play-services-ads:22.5.0'
 
     implementation "androidx.lifecycle:lifecycle-process:2.4.1"
-    implementation files('libs/NeftaAMAdapter-debug-1.0.2.aar')
+    implementation files('libs/NeftaAMAdapter-debug-1.0.3.aar')
 }
