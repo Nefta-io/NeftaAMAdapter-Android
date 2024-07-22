@@ -5,7 +5,7 @@ android {
     compileSdk 33
 
     defaultConfig {
-        applicationId "com.google.ads.mediation.neftademo"
+        applicationId "com.nefta.am"
         minSdk 19
         targetSdk 33
         versionCode 1
