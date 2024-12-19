@@ -38,6 +38,7 @@ class InterstitialWrapper extends FullScreenContentCallback implements OnPaidEve
             @Override
             public void onClick(View v) {
                 _interstitial.show(_activity);
+                _showButton.setEnabled(false);
             }
         });
         _showButton.setEnabled(false);
