@@ -18,14 +18,14 @@ import com.google.android.gms.ads.rewarded.RewardItem;
 import com.google.android.gms.ads.rewarded.RewardedAd;
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
 
-public class RewardedVideoWrapper extends FullScreenContentCallback implements OnPaidEventListener, OnUserEarnedRewardListener {
+public class RewardedWrapper extends FullScreenContentCallback implements OnPaidEventListener, OnUserEarnedRewardListener {
     private final String TAG = "REWARDED_VIDEO";
     private Activity _activity;
     private Button _loadButton;
     private Button _showButton;
     RewardedAd _rewardedAd;
 
-    public RewardedVideoWrapper(Activity activity, Button loadButton, Button showButton) {
+    public RewardedWrapper(Activity activity, Button loadButton, Button showButton) {
         _activity = activity;
         _loadButton = loadButton;
         _showButton = showButton;
@@ -38,7 +38,7 @@ public class RewardedVideoWrapper extends FullScreenContentCallback implements O
         _showButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                _rewardedAd.show(_activity, RewardedVideoWrapper.this);
+                _rewardedAd.show(_activity, RewardedWrapper.this);
                 _showButton.setEnabled(false);
             }
         });
@@ -50,19 +50,22 @@ public class RewardedVideoWrapper extends FullScreenContentCallback implements O
             new RewardedAdLoadCallback() {
                 @Override
                 public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
-                    Log.i(TAG, "onAdFailedToLoad "+ loadAdError);
+                    Log.i(TAG, "onAdFailedToLoad "+ loadAdError.getMessage());
                     _rewardedAd = null;
+
+                    _loadButton.setEnabled(true);
                 }
 
                 @Override
                 public void onAdLoaded(@NonNull RewardedAd ad) {
                     _rewardedAd = ad;
-                    _rewardedAd.setFullScreenContentCallback(RewardedVideoWrapper.this);
-                    _rewardedAd.setOnPaidEventListener(RewardedVideoWrapper.this);
+                    _rewardedAd.setFullScreenContentCallback(RewardedWrapper.this);
+                    _rewardedAd.setOnPaidEventListener(RewardedWrapper.this);
                     Log.i(TAG, "onAdLoaded "+ ad.getAdUnitId());
                     _showButton.setEnabled(true);
                 }
             });
+        _loadButton.setEnabled(false);
     }
 
     @Override
@@ -95,6 +98,8 @@ public class RewardedVideoWrapper extends FullScreenContentCallback implements O
     @Override
     public void onAdShowedFullScreenContent() {
         Log.i(TAG, "onAdShowedFullScreenContent");
+
+        _loadButton.setEnabled(true);
     }
 
     @Override

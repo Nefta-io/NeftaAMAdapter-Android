@@ -1,13 +1,15 @@
-apply plugin: 'com.android.application'
+plugins {
+    id 'com.android.application'
+}
 android {
     namespace 'com.nefta.am'
     compileSdk 33
     defaultConfig {
         applicationId "com.nefta.am"
-        minSdk 19
+        minSdk 21
         targetSdk 33
-        versionCode 87
-        versionName "2.0.1"
+        versionCode 153
+        versionName "2.2.0"
         multiDexEnabled true
     }
     buildTypes {
