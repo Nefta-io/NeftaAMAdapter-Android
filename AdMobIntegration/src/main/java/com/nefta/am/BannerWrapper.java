@@ -33,7 +33,7 @@ class BannerWrapper extends AdListener implements OnPaidEventListener {
             @Override
             public void onClick(View v) {
                 _adView = new AdView(_activity);
-                _adView.setAdSize(AdSize.LEADERBOARD);
+                _adView.setAdSize(AdSize.BANNER);
                 _adView.setAdUnitId("ca-app-pub-1193175835908241/3238310303");
                 _adView.setAdListener(BannerWrapper.this);
                 _adView.setOnPaidEventListener(BannerWrapper.this);

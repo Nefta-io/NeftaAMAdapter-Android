@@ -8,8 +8,8 @@ android {
         applicationId "com.nefta.am"
         minSdk 21
         targetSdk 33
-        versionCode 163
-        versionName "2.2.1"
+        versionCode 176
+        versionName "2.2.2"
         multiDexEnabled true
     }
     buildTypes {
