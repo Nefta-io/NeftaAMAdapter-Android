@@ -1,6 +1,5 @@
 package com.nefta.am;
 
-import android.app.Activity;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -18,103 +17,76 @@ import com.google.android.gms.ads.LoadAdError;
 import com.google.android.gms.ads.OnPaidEventListener;
 import com.google.android.gms.ads.interstitial.InterstitialAd;
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
-import com.nefta.sdk.Insight;
+import com.nefta.sdk.AdInsight;
+import com.nefta.sdk.Insights;
 import com.nefta.sdk.NeftaPlugin;
-
-import java.util.HashMap;
 
 class InterstitialWrapper extends FullScreenContentCallback implements OnPaidEventListener {
     private final String DefaultAdUnitId = "ca-app-pub-1193175835908241/2233679380";
     private final String TAG = "INTERSTITIAL";
-    private final String AdUnitIdInsightName = "recommended_interstitial_ad_unit_id";
-    private final String FloorPriceInsightName = "calculated_user_floor_price_interstitial";
 
     private InterstitialAd _interstitial;
-    private String _recommendedAdUnitId;
-    private double _calculatedBidFloor;
-    private boolean _isLoadRequested;
-    private String _loadedAdUnitId;
+    private AdInsight _usedInsight;
+    private boolean _isLoading;
 
-    private Activity _activity;
+    private MainActivity _activity;
     private Button _loadButton;
     private Button _showButton;
     private Handler _handler;
 
     private void GetInsightsAndLoad() {
-        _isLoadRequested = true;
-
-        NeftaPlugin._instance.GetBehaviourInsight(new String[] { AdUnitIdInsightName, FloorPriceInsightName }, this::OnBehaviourInsight);
-
-        _handler.postDelayed(() -> {
-            if (_isLoadRequested) {
-                _recommendedAdUnitId = null;
-                _calculatedBidFloor = 0;
-                Load();
-            }
-        }, 5000);
+        NeftaPlugin._instance.GetInsights(Insights.INTERSTITIAL, this::Load, 5);
     }
 
-    private void OnBehaviourInsight(HashMap<String, Insight> insights) {
-        _recommendedAdUnitId = null;
-        _calculatedBidFloor = 0;
-        if (insights.containsKey(AdUnitIdInsightName)) {
-            _recommendedAdUnitId = insights.get(AdUnitIdInsightName)._string;
+    private void Load(Insights insights) {
+        String selectedAdUnitId = DefaultAdUnitId;
+        _usedInsight = insights._interstitial;
+        if (_usedInsight != null && _usedInsight._adUnit != null) {
+            selectedAdUnitId = _usedInsight._adUnit;
         }
-        if (insights.containsKey(FloorPriceInsightName)) {
-            _calculatedBidFloor = insights.get(FloorPriceInsightName)._float;
-        }
+        final String adUnitToLoad = selectedAdUnitId;
 
-        Log.i(TAG, "OnBehaviourInsights for Interstitial: "+ _recommendedAdUnitId +", calculated bid floor: "+ _calculatedBidFloor);
-
-        if (_isLoadRequested) {
-            Load();
-        }
-    }
-
-    private void Load() {
-        _isLoadRequested = false;
-
-        _loadedAdUnitId = _recommendedAdUnitId != null ? _recommendedAdUnitId : DefaultAdUnitId;
-        Log.i(TAG, "Loading Interstitial "+ _loadedAdUnitId);
-
-        InterstitialAd.load(_activity, _loadedAdUnitId, new AdRequest.Builder().build(),
+        Log("Loading Interstitial "+ adUnitToLoad);
+        InterstitialAd.load(_activity, adUnitToLoad, new AdRequest.Builder().build(),
             new InterstitialAdLoadCallback() {
                 @Override
                 public void onAdFailedToLoad(@NonNull LoadAdError adError) {
-                    NeftaAdapter.OnExternalMediationRequestFailed(NeftaAdapter.AdType.Interstitial, _recommendedAdUnitId, _calculatedBidFloor, _loadedAdUnitId, adError);
+                    NeftaAdapter.OnExternalMediationRequestFailed(NeftaAdapter.AdType.Interstitial, adUnitToLoad, _usedInsight, adError);
 
-                    Log.i(TAG, "onAdLoadFailed " + adError);
+                    Log("onAdLoadFailed " + adError);
 
-                    _loadButton.setEnabled(true);
-
-                    _handler.postDelayed(InterstitialWrapper.this::GetInsightsAndLoad, 5000);
+                    _handler.postDelayed(() -> {
+                        if (_isLoading) {
+                            GetInsightsAndLoad();
+                        }
+                    }, 5000);
                 }
 
                 @Override
-                public void onAdLoaded(@NonNull InterstitialAd interstitialAd) {
-                    NeftaAdapter.OnExternalMediationRequestLoaded(NeftaAdapter.AdType.Interstitial, _recommendedAdUnitId, _calculatedBidFloor, interstitialAd);
+                public void onAdLoaded(@NonNull InterstitialAd ad) {
+                    NeftaAdapter.OnExternalMediationRequestLoaded(ad, _usedInsight);
 
-                    Log.i(TAG, "onAdLoaded "+ interstitialAd.getAdUnitId());
+                    Log("onAdLoaded "+ adUnitToLoad);
 
-                    _interstitial = interstitialAd;
+                    _interstitial = ad;
                     _interstitial.setFullScreenContentCallback(InterstitialWrapper.this);
                     _interstitial.setOnPaidEventListener(InterstitialWrapper.this);
 
+                    SetLoadingButton(false);
+                    _loadButton.setEnabled(false);
                     _showButton.setEnabled(true);
                 }
             });
-
-        _loadButton.setEnabled(false);
     }
 
     @Override
     public void onPaidEvent(@NonNull AdValue adValue) {
-        NeftaAdapter.OnExternalMediationImpression(NeftaAdapter.AdType.Interstitial, _loadedAdUnitId, adValue);
+        NeftaAdapter.OnExternalMediationImpression(_interstitial, adValue);
 
-        Log.i(TAG, "onPaidEvent "+ adValue);
+        Log("onPaidEvent "+ adValue);
     }
 
-    public InterstitialWrapper(Activity activity, Button loadButton, Button showButton) {
+    public InterstitialWrapper(MainActivity activity, Button loadButton, Button showButton) {
         _activity = activity;
         _loadButton = loadButton;
         _showButton = showButton;
@@ -124,13 +96,20 @@ class InterstitialWrapper extends FullScreenContentCallback implements OnPaidEve
         _loadButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Load();
+                if (_isLoading) {
+                    SetLoadingButton(false);
+                } else {
+                    Log("GetInsightsAndLoad...");
+                    GetInsightsAndLoad();
+                    SetLoadingButton(true);
+                }
             }
         });
         _showButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 _interstitial.show(_activity);
+                _loadButton.setEnabled(true);
                 _showButton.setEnabled(false);
             }
         });
@@ -139,29 +118,40 @@ class InterstitialWrapper extends FullScreenContentCallback implements OnPaidEve
 
     @Override
     public void onAdFailedToShowFullScreenContent(@NonNull AdError adError) {
-       Log.i(TAG, "onAdFailedToShowFullScreenContent "+ adError);
+       Log("onAdFailedToShowFullScreenContent "+ adError);
     }
 
     @Override
     public void onAdImpression() {
-        Log.i(TAG, "onAdImpression");
+        Log("onAdImpression");
     }
 
     @Override
     public void onAdShowedFullScreenContent() {
-        Log.i(TAG, "onAdShowedFullScreenContent");
+        Log("onAdShowedFullScreenContent");
     }
 
     @Override
     public void onAdClicked() {
-        Log.i(TAG, "onAdClicked");
+        Log("onAdClicked");
     }
 
     @Override
     public void onAdDismissedFullScreenContent() {
-        Log.i(TAG, "onAdDismissedFullScreenContent");
+        Log("onAdDismissedFullScreenContent");
+    }
 
-        _loadButton.setEnabled(true);
+    private void Log(String log) {
+        _activity.Log("Interstitial " + log);
+    }
+
+    private void SetLoadingButton(boolean isLoading) {
+        _isLoading = isLoading;
+        if (isLoading) {
+            _loadButton.setText("Cancel");
+        } else {
+            _loadButton.setText("Load Interstitial");
+        }
     }
 }
 
