@@ -17,23 +17,6 @@
       app:layout_constraintStart_toStartOf="parent"
       app:layout_constraintTop_toTopOf="parent">
 
-    <FrameLayout
-        android:id="@+id/bannerWrapper"
-        android:layout_width="322dp"
-        android:layout_height="52dp"
-        android:layout_gravity="center_horizontal"
-        android:background="#FF0000">
-
-      <FrameLayout
-          android:id="@+id/bannerView"
-          android:layout_width="320dp"
-          android:layout_height="50dp"
-          android:layout_gravity="center_horizontal"
-          android:layout_margin="1dp"
-          android:background="#FFFFFF" />
-
-    </FrameLayout>
-
     <TableLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -43,40 +26,11 @@
           android:layout_width="match_parent"
           android:layout_height="match_parent">
 
-        <Button
-            android:id="@+id/showBanner"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_margin="5dp"
-            android:background="@drawable/button"
-            android:gravity="center"
-            android:text="Show Banner"
-            android:textColor="#000000" />
-
-        <Button
-            android:id="@+id/closeBanner"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_margin="5dp"
-            android:background="@drawable/button"
-            android:foregroundGravity="center"
-            android:text="Close Banner"
-            android:textColor="#000000" />
-      </TableRow>
-
-      <TableRow
-          android:layout_width="match_parent"
-          android:layout_height="match_parent">
-
-        <Button
+        <Switch
             android:id="@+id/loadInterstitial"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_margin="5dp"
-            android:background="@drawable/button"
-            android:foregroundGravity="center"
-            android:text="Load Interstitial"
-            android:textColor="#000000" />
+            android:text="Load Interstitial" />
 
         <Button
             android:id="@+id/showInterstitial"
@@ -93,24 +47,34 @@
           android:layout_width="match_parent"
           android:layout_height="match_parent">
 
-        <Button
-            android:id="@+id/loadRewardedVideo"
+        <TextView
+            android:id="@+id/interstitialStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_span="2"
+            android:singleLine="false"
+            android:text="Initializing.."
+            android:textColor="#000000" />
+      </TableRow>
+
+      <TableRow
+          android:layout_width="match_parent"
+          android:layout_height="match_parent">
+
+        <Switch
+            android:id="@+id/loadRewarded"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_margin="5dp"
-            android:background="@drawable/button"
-            android:foregroundGravity="center"
-            android:text="Load rewarded video"
-            android:textColor="#000000" />
+            android:text="Load Rewarded" />
 
         <Button
-            android:id="@+id/showRewardedVideo"
+            android:id="@+id/showRewarded"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_margin="5dp"
             android:background="@drawable/button"
             android:foregroundGravity="center"
-            android:text="Show rewarded video"
+            android:text="Show rewarded"
             android:textColor="#000000" />
       </TableRow>
 
@@ -119,7 +83,7 @@
           android:layout_height="match_parent">
 
         <TextView
-            android:id="@+id/status"
+            android:id="@+id/rewardedStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_span="2"

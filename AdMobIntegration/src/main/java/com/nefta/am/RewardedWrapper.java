@@ -2,8 +2,12 @@ package com.nefta.am;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CompoundButton;
+import android.widget.Switch;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
@@ -25,89 +29,167 @@ import com.nefta.sdk.NeftaPlugin;
 public class RewardedWrapper extends FullScreenContentCallback implements OnPaidEventListener, OnUserEarnedRewardListener {
     private final String DefaultAdUnitId = "ca-app-pub-1193175835908241/8841990779";
 
-    private RewardedAd _rewardedAd;
-    private AdInsight _usedInsight;
-    private boolean _isLoading;
+    private AdRequest _dynamicRequest;
+    private AdInsight _dynamicInsight;
+    private RewardedAd _dynamicRewarded;
+    private AdRequest _defaultRequest;
+    private RewardedAd _defaultRewarded;
+    private RewardedAd _presentingRewarded;
 
     private MainActivity _activity;
-    private Button _loadButton;
+    private Switch _loadSwitch;
     private Button _showButton;
+    private TextView _status;
     private Handler _handler;
 
-    private void GetInsightsAndLoad() {
-        NeftaPlugin._instance.GetInsights(Insights.REWARDED, this::Load, 5);
+    private void StartLoading() {
+        if (_dynamicRequest == null) {
+            _dynamicInsight = null;
+            GetInsightsAndLoad();
+        }
+        if (_defaultRequest == null) {
+            LoadDefault();
+        }
     }
 
-    private void Load(Insights insights) {
-        String selectedAdUnitId = DefaultAdUnitId;
-        _usedInsight = insights._rewarded;
-        if (_usedInsight != null && _usedInsight._adUnit != null) {
-            selectedAdUnitId = _usedInsight._adUnit;
+    private void GetInsightsAndLoad() {
+        if (_dynamicRequest != null || !_loadSwitch.isChecked()) {
+            return;
         }
-        final String adUnitToLoad = selectedAdUnitId;
 
-        Log("Loading Rewarded "+ adUnitToLoad);
+        _dynamicRequest = new AdRequest.Builder().build();
 
-        RewardedAd.load(_activity, adUnitToLoad, new AdRequest.Builder().build(),
-            new RewardedAdLoadCallback() {
-                @Override
-                public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
-                    NeftaAdapter.OnExternalMediationRequestFailed(NeftaAdapter.AdType.Rewarded, adUnitToLoad, _usedInsight, loadAdError);
+        NeftaPlugin._instance.GetInsights(Insights.REWARDED, _dynamicInsight, this::LoadWithInsights, 5);
+    }
 
-                    Log("onAdFailedToLoad "+ loadAdError.getMessage());
+    private void LoadWithInsights(Insights insights) {
+        _dynamicInsight = insights._rewarded;
+        if (_dynamicInsight != null && _dynamicInsight._adUnit != null) {
+            String recommendedAdUnitId = _dynamicInsight._adUnit;
+            Log("Loading Dynamic " + recommendedAdUnitId);
+            NeftaAdapter.OnExternalMediationRequestWithInsight(_dynamicInsight, _dynamicRequest, recommendedAdUnitId);
+            RewardedAd.load(_activity, _dynamicInsight._adUnit, _dynamicRequest,
+                    new RewardedAdLoadCallback() {
+                        @Override
+                        public void onAdLoaded(@NonNull RewardedAd ad) {
+                            NeftaAdapter.OnExternalMediationRequestLoaded(ad, _dynamicRequest);
 
-                    _handler.postDelayed(() -> {
-                        if (_isLoading) {
-                            GetInsightsAndLoad();
+                            Log("onAdLoaded Dynamic " + recommendedAdUnitId);
+
+                            _dynamicInsight = null;
+                            _dynamicRewarded = ad;
+
+                            ad.setFullScreenContentCallback(RewardedWrapper.this);
+                            ad.setOnPaidEventListener(RewardedWrapper.this);
+
+                            UpdateShowButton();
                         }
-                    }, 5000);
-                }
 
-                @Override
-                public void onAdLoaded(@NonNull RewardedAd ad) {
-                    NeftaAdapter.OnExternalMediationRequestLoaded(ad, _usedInsight);
+                        @Override
+                        public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                            NeftaAdapter.OnExternalMediationRequestFailed(_dynamicRequest, loadAdError);
 
-                    Log("onAdLoaded "+ ad.getAdUnitId());
+                            Log("onAdFailedToLoad Dynamic " + loadAdError.getMessage());
 
-                    _rewardedAd = ad;
-                    _rewardedAd.setFullScreenContentCallback(RewardedWrapper.this);
-                    _rewardedAd.setOnPaidEventListener(RewardedWrapper.this);
+                            _dynamicRequest = null;
 
-                    SetLoadingButton(false);
-                    _loadButton.setEnabled(false);
-                    _showButton.setEnabled(true);
-                }
-            });
+                            _handler.postDelayed(() -> {
+                                GetInsightsAndLoad();
+                            }, 5000);
+                        }
+                    });
+        } else {
+            _dynamicRequest = null;
+        }
+    }
+
+    private void LoadDefault() {
+        if (_defaultRequest != null || !_loadSwitch.isChecked()) {
+            return;
+        }
+
+        Log("Loading Default " + DefaultAdUnitId);
+
+        _defaultRequest = new AdRequest.Builder().build();
+        NeftaAdapter.OnExternalMediationRequest(NeftaAdapter.AdType.Rewarded, _defaultRequest, DefaultAdUnitId);
+        RewardedAd.load(_activity, DefaultAdUnitId, _defaultRequest,
+                new RewardedAdLoadCallback() {
+                    @Override
+                    public void onAdLoaded(@NonNull RewardedAd ad) {
+                        NeftaAdapter.OnExternalMediationRequestLoaded(ad, _defaultRequest);
+
+                        Log("onAdLoaded Default " + ad.getAdUnitId());
+
+                        _defaultRewarded = ad;
+
+                        ad.setFullScreenContentCallback(RewardedWrapper.this);
+                        ad.setOnPaidEventListener(RewardedWrapper.this);
+
+                        UpdateShowButton();
+                    }
+
+                    @Override
+                    public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                        NeftaAdapter.OnExternalMediationRequestFailed(_defaultRequest, loadAdError);
+
+                        Log("onAdFailedToLoad Default " + loadAdError.getMessage());
+
+                        _defaultRequest = null;
+
+                        _handler.postDelayed(() -> {
+                            LoadDefault();
+                        }, 5000);
+                    }
+                });
     }
 
     @Override
     public void onPaidEvent(@NonNull AdValue adValue) {
-        NeftaAdapter.OnExternalMediationImpression(_rewardedAd, adValue);
+        NeftaAdapter.OnExternalMediationImpression(_presentingRewarded, adValue);
 
         Log("onPaidEvent "+ adValue);
     }
 
-    public RewardedWrapper(MainActivity activity, Button loadButton, Button showButton) {
+    @Override
+    public void onAdClicked() {
+        NeftaAdapter.OnExternalMediationClick(_presentingRewarded);
+
+        Log("onAdClicked");
+    }
+
+    public RewardedWrapper(MainActivity activity, Switch loadButton, Button showButton, TextView status) {
         _activity = activity;
-        _loadButton = loadButton;
+        _loadSwitch = loadButton;
         _showButton = showButton;
+        _status = status;
 
         _handler = new Handler(Looper.getMainLooper());
 
-        _loadButton.setOnClickListener(new View.OnClickListener() {
+        _loadSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
-            public void onClick(View v) {
-                Log("GetInsightsAndLoad...");
-                GetInsightsAndLoad();
-                _loadButton.setEnabled(false);
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    StartLoading();
+                } else {
+                    _dynamicInsight = null;
+                }
             }
         });
         _showButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                _rewardedAd.show(_activity, RewardedWrapper.this);
-                _loadButton.setEnabled(true);
-                _showButton.setEnabled(false);
+                if (_dynamicRewarded != null) {
+                    _dynamicRewarded.show(_activity, RewardedWrapper.this);
+                    _presentingRewarded = _dynamicRewarded;
+                    _dynamicRewarded = null;
+                    _dynamicRequest = null;
+                } else if (_defaultRewarded != null) {
+                    _defaultRewarded.show(_activity, RewardedWrapper.this);
+                    _presentingRewarded = _defaultRewarded;
+                    _defaultRewarded = null;
+                    _defaultRequest = null;
+                }
+                UpdateShowButton();
             }
         });
         _showButton.setEnabled(false);
@@ -116,7 +198,6 @@ public class RewardedWrapper extends FullScreenContentCallback implements OnPaid
     @Override
     public void onAdFailedToShowFullScreenContent(@NonNull AdError adError) {
         Log("onAdFailedToShowFullScreenContent");
-        _rewardedAd = null;
     }
 
     @Override
@@ -130,13 +211,15 @@ public class RewardedWrapper extends FullScreenContentCallback implements OnPaid
     }
 
     @Override
-    public void onAdClicked() {
-        Log("onAdClicked");
-    }
-
-    @Override
     public void onAdDismissedFullScreenContent() {
         Log("onAdDismissedFullScreenContent");
+
+        _presentingRewarded = null;
+
+        // start new cycle
+        if (_loadSwitch.isChecked()) {
+            StartLoading();
+        }
     }
 
     @Override
@@ -144,16 +227,13 @@ public class RewardedWrapper extends FullScreenContentCallback implements OnPaid
         Log("onUserEarnedReward " + rewardItem);
     }
 
-    private void Log(String log) {
-        _activity.Log("Rewarded " + log);
+    private void UpdateShowButton() {
+        _showButton.setEnabled(_dynamicRewarded != null || _defaultRewarded != null);
     }
 
-    private void SetLoadingButton(boolean isLoading) {
-        _isLoading = isLoading;
-        if (isLoading) {
-            _loadButton.setText("Cancel");
-        } else {
-            _loadButton.setText("Load Interstitial");
-        }
+    private void Log(String log) {
+        log = "Rewarded " + log;
+        _status.setText(log);
+        Log.i("NeftaPluginAM", log);
     }
 }

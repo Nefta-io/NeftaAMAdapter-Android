@@ -8,8 +8,8 @@ android {
         applicationId "com.nefta.am"
         minSdk 21
         targetSdk 33
-        versionCode 203
-        versionName "4.3.0"
+        versionCode 256
+        versionName "4.4.2"
         multiDexEnabled true
     }
     buildTypes {
@@ -28,5 +28,6 @@ dependencies {
     implementation 'com.google.android.gms:play-services-ads:22.5.0'
     implementation "androidx.lifecycle:lifecycle-process:2.4.1"
     implementation 'com.google.android.material:material:1.1.0'
-    implementation 'com.nefta:nefta-sdk-am:4.3.0'
+    implementation files('libs/NeftaAMAdapter-release.aar')
+    implementation files('libs/NeftaPlugin-release.aar')
 }

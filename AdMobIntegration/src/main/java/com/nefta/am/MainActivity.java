@@ -2,7 +2,6 @@ package com.nefta.am;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.TextView;
 
 import com.google.android.gms.ads.MobileAds;
@@ -11,49 +10,49 @@ import com.nefta.sdk.NeftaPlugin;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.util.Arrays;
+
 public class MainActivity extends AppCompatActivity {
 
-    private final String _tag = "NeftaPluginAM";
-
-    private BannerWrapper _bannerWrapper;
-    private InterstitialWrapper _interstitialWrapper;
-    private RewardedWrapper _rewardedVideoWrapper;
-    private TextView _status;
+    private TextView _interstitialStatus;
+    private TextView _rewardedStatus;
 
     @Override
         protected void onCreate(Bundle savedInstanceState) {
         super.onCreate( savedInstanceState );
         setContentView( R.layout.activity_main );
 
-        NeftaPlugin.EnableLogging(true);
-        NeftaPlugin plugin = NeftaPlugin.Init(this, "5713110509813760");
+        _interstitialStatus = findViewById(R.id.interstitialStatus);
+        _rewardedStatus = findViewById(R.id.rewardedStatus);
+
         Intent intent = getIntent();
         if (intent != null && intent.getExtras() != null) {
             String override = intent.getStringExtra("override");
             if (override != null && override.length() > 2) {
-                plugin.SetOverride(override);
+                NeftaPlugin.SetOverride(override);
             }
         }
 
+        NeftaPlugin.EnableLogging(true);
+        NeftaPlugin.SetExtraParameter(NeftaPlugin.ExtParam_TestGroup, "split-am");
+        NeftaPlugin plugin = NeftaPlugin.Init(this, "5713110509813760");
+
         new Thread(() -> {
             RequestConfiguration r = MobileAds.getRequestConfiguration().toBuilder()
+                    .setTestDeviceIds(Arrays.asList(
+                            "9429116F2099040F92F84E023664B484",
+                            "40E5105E483D16020842051E0FFDCB4D",
+                            "0D61331B015C8F81BCEEC7FD449CDEE7"))
                     .setMaxAdContentRating(RequestConfiguration.MAX_AD_CONTENT_RATING_G).build();
             MobileAds.setRequestConfiguration(r);
 
             MobileAds.initialize(this, initializationStatus -> {
-                Log("Initialized");
+                _interstitialStatus.setText("Initialized");
+                _rewardedStatus.setText("Initialized");
             });
         }).start();
 
-        _status = findViewById(R.id.status);
-
-        _bannerWrapper = new BannerWrapper(this, findViewById(R.id.bannerView), findViewById(R.id.showBanner), findViewById(R.id.closeBanner));
-        _interstitialWrapper = new InterstitialWrapper(this, findViewById(R.id.loadInterstitial), findViewById(R.id.showInterstitial));
-        _rewardedVideoWrapper = new RewardedWrapper(this, findViewById(R.id.loadRewardedVideo), findViewById(R.id.showRewardedVideo));
-    }
-
-    void Log(String log) {
-        _status.setText(log);
-        Log.i(_tag, log);
+        new InterstitialWrapper(this, findViewById(R.id.loadInterstitial), findViewById(R.id.showInterstitial), _interstitialStatus);
+        new RewardedWrapper(this, findViewById(R.id.loadRewarded), findViewById(R.id.showRewarded), _rewardedStatus);
     }
 }

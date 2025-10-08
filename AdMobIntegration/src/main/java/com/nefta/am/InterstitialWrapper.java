@@ -5,6 +5,9 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CompoundButton;
+import android.widget.Switch;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
@@ -23,94 +26,168 @@ import com.nefta.sdk.NeftaPlugin;
 
 class InterstitialWrapper extends FullScreenContentCallback implements OnPaidEventListener {
     private final String DefaultAdUnitId = "ca-app-pub-1193175835908241/2233679380";
-    private final String TAG = "INTERSTITIAL";
 
-    private InterstitialAd _interstitial;
-    private AdInsight _usedInsight;
-    private boolean _isLoading;
+    private AdRequest _dynamicRequest;
+    private AdInsight _dynamicInsight;
+    private InterstitialAd _dynamicInterstitial;
+    private AdRequest _defaultRequest;
+    private InterstitialAd _defaultInterstitial;
+    private InterstitialAd _presentingInterstitial;
 
     private MainActivity _activity;
-    private Button _loadButton;
+    private Switch _loadSwitch;
     private Button _showButton;
+    private TextView _status;
     private Handler _handler;
 
-    private void GetInsightsAndLoad() {
-        NeftaPlugin._instance.GetInsights(Insights.INTERSTITIAL, this::Load, 5);
+    private void StartLoading() {
+        if (_dynamicRequest == null) {
+            _dynamicInsight = null;
+            GetInsightsAndLoad();
+        }
+        if (_defaultRequest == null) {
+            LoadDefault();
+        }
     }
 
-    private void Load(Insights insights) {
-        String selectedAdUnitId = DefaultAdUnitId;
-        _usedInsight = insights._interstitial;
-        if (_usedInsight != null && _usedInsight._adUnit != null) {
-            selectedAdUnitId = _usedInsight._adUnit;
+    private void GetInsightsAndLoad() {
+        if (_dynamicRequest != null || !_loadSwitch.isChecked()) {
+            return;
         }
-        final String adUnitToLoad = selectedAdUnitId;
 
-        Log("Loading Interstitial "+ adUnitToLoad);
-        InterstitialAd.load(_activity, adUnitToLoad, new AdRequest.Builder().build(),
-            new InterstitialAdLoadCallback() {
-                @Override
-                public void onAdFailedToLoad(@NonNull LoadAdError adError) {
-                    NeftaAdapter.OnExternalMediationRequestFailed(NeftaAdapter.AdType.Interstitial, adUnitToLoad, _usedInsight, adError);
+        _dynamicRequest = new AdRequest.Builder().build();
 
-                    Log("onAdLoadFailed " + adError);
+        NeftaPlugin._instance.GetInsights(Insights.INTERSTITIAL, _dynamicInsight, this::LoadWithInsights, 5);
+    }
 
-                    _handler.postDelayed(() -> {
-                        if (_isLoading) {
-                            GetInsightsAndLoad();
+    private void LoadWithInsights(Insights insights) {
+        _dynamicInsight = insights._interstitial;
+        if (_dynamicInsight != null && _dynamicInsight._adUnit != null) {
+            final String recommendedAdUnitId = _dynamicInsight._adUnit;
+            Log("Loading Dynamic " + recommendedAdUnitId);
+            NeftaAdapter.OnExternalMediationRequestWithInsight(_dynamicInsight, _dynamicRequest, recommendedAdUnitId);
+            InterstitialAd.load(_activity, recommendedAdUnitId, _dynamicRequest,
+                    new InterstitialAdLoadCallback() {
+                        @Override
+                        public void onAdLoaded(@NonNull InterstitialAd ad) {
+                            NeftaAdapter.OnExternalMediationRequestLoaded(ad, _dynamicRequest);
+
+                            Log("onAdLoaded Dynamic " + recommendedAdUnitId);
+
+                            _dynamicInsight = null;
+                            _dynamicInterstitial = ad;
+
+                            ad.setFullScreenContentCallback(InterstitialWrapper.this);
+                            ad.setOnPaidEventListener(InterstitialWrapper.this);
+
+                            UpdateShowButton();
                         }
-                    }, 5000);
-                }
 
-                @Override
-                public void onAdLoaded(@NonNull InterstitialAd ad) {
-                    NeftaAdapter.OnExternalMediationRequestLoaded(ad, _usedInsight);
+                        @Override
+                        public void onAdFailedToLoad(@NonNull LoadAdError adError) {
+                            NeftaAdapter.OnExternalMediationRequestFailed(_dynamicRequest, adError);
 
-                    Log("onAdLoaded "+ adUnitToLoad);
+                            Log("onAdFailedToLoad Dynamic " + adError);
 
-                    _interstitial = ad;
-                    _interstitial.setFullScreenContentCallback(InterstitialWrapper.this);
-                    _interstitial.setOnPaidEventListener(InterstitialWrapper.this);
+                            _dynamicRequest = null;
 
-                    SetLoadingButton(false);
-                    _loadButton.setEnabled(false);
-                    _showButton.setEnabled(true);
-                }
-            });
+                            _handler.postDelayed(() -> {
+                                GetInsightsAndLoad();
+                            }, 5000);
+                        }
+                    });
+        } else {
+            _dynamicRequest = null;
+        }
+    }
+
+    private void LoadDefault() {
+        if (_defaultRequest != null || !_loadSwitch.isChecked()) {
+            return;
+        }
+
+        Log("Loading Default " + DefaultAdUnitId);
+
+        _defaultRequest = new AdRequest.Builder().build();
+        NeftaAdapter.OnExternalMediationRequest(NeftaAdapter.AdType.Interstitial, _defaultRequest, DefaultAdUnitId);
+        InterstitialAd.load(_activity, DefaultAdUnitId, _defaultRequest,
+                new InterstitialAdLoadCallback() {
+                    @Override
+                    public void onAdLoaded(@NonNull InterstitialAd ad) {
+                        NeftaAdapter.OnExternalMediationRequestLoaded(ad, _defaultRequest);
+
+                        Log("onAdLoaded Default " + ad.getAdUnitId());
+
+                        _defaultInterstitial = ad;
+
+                        ad.setFullScreenContentCallback(InterstitialWrapper.this);
+                        ad.setOnPaidEventListener(InterstitialWrapper.this);
+
+                        UpdateShowButton();
+                    }
+
+                    @Override
+                    public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                        NeftaAdapter.OnExternalMediationRequestFailed(_defaultRequest, loadAdError);
+
+                        Log("onAdFailedToLoad Default " + loadAdError.getMessage());
+
+                        _defaultRequest = null;
+
+                        _handler.postDelayed(() -> {
+                            LoadDefault();
+                        }, 5000);
+                    }
+                });
     }
 
     @Override
     public void onPaidEvent(@NonNull AdValue adValue) {
-        NeftaAdapter.OnExternalMediationImpression(_interstitial, adValue);
+        NeftaAdapter.OnExternalMediationImpression(_presentingInterstitial, adValue);
 
         Log("onPaidEvent "+ adValue);
     }
 
-    public InterstitialWrapper(MainActivity activity, Button loadButton, Button showButton) {
+    @Override
+    public void onAdClicked() {
+        NeftaAdapter.OnExternalMediationClick(_presentingInterstitial);
+
+        Log("onAdClicked");
+    }
+
+    public InterstitialWrapper(MainActivity activity, Switch loadSwitch, Button showButton, TextView status) {
         _activity = activity;
-        _loadButton = loadButton;
+        _loadSwitch = loadSwitch;
         _showButton = showButton;
+        _status = status;
 
         _handler = new Handler(Looper.getMainLooper());
 
-        _loadButton.setOnClickListener(new View.OnClickListener() {
+        _loadSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
-            public void onClick(View v) {
-                if (_isLoading) {
-                    SetLoadingButton(false);
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    StartLoading();
                 } else {
-                    Log("GetInsightsAndLoad...");
-                    GetInsightsAndLoad();
-                    SetLoadingButton(true);
+                    _dynamicInsight = null;
                 }
             }
         });
         _showButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                _interstitial.show(_activity);
-                _loadButton.setEnabled(true);
-                _showButton.setEnabled(false);
+                if(_dynamicInterstitial != null) {
+                    _dynamicInterstitial.show(_activity);
+                    _presentingInterstitial = _dynamicInterstitial;
+                    _dynamicInterstitial = null;
+                    _dynamicRequest = null;
+                } else if (_defaultInterstitial != null) {
+                    _defaultInterstitial.show(_activity);
+                    _presentingInterstitial = _defaultInterstitial;
+                    _defaultInterstitial = null;
+                    _defaultRequest = null;
+                }
+                UpdateShowButton();
             }
         });
         _showButton.setEnabled(false);
@@ -132,26 +209,25 @@ class InterstitialWrapper extends FullScreenContentCallback implements OnPaidEve
     }
 
     @Override
-    public void onAdClicked() {
-        Log("onAdClicked");
-    }
-
-    @Override
     public void onAdDismissedFullScreenContent() {
         Log("onAdDismissedFullScreenContent");
+
+        _presentingInterstitial = null;
+
+        // start new cycle
+        if (_loadSwitch.isChecked()) {
+            StartLoading();
+        }
+    }
+
+    private void UpdateShowButton() {
+        _showButton.setEnabled(_dynamicInterstitial != null || _defaultInterstitial != null);
     }
 
     private void Log(String log) {
-        _activity.Log("Interstitial " + log);
-    }
-
-    private void SetLoadingButton(boolean isLoading) {
-        _isLoading = isLoading;
-        if (isLoading) {
-            _loadButton.setText("Cancel");
-        } else {
-            _loadButton.setText("Load Interstitial");
-        }
+        log = "Interstitial " + log;
+        _status.setText(log);
+        Log.i("NeftaPluginAM", log);
     }
 }
 
