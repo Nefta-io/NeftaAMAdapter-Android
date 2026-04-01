@@ -8,8 +8,8 @@ android {
         applicationId "com.nefta.am"
         minSdk 23
         targetSdk 34
-        versionCode 300
-        versionName "4.4.5"
+        versionCode 308
+        versionName "4.5.0"
         multiDexEnabled true
         android.buildFeatures.buildConfig true
         def localProperties = new Properties()
@@ -36,4 +36,5 @@ dependencies {
     implementation 'com.google.android.gms:play-services-ads:24.9.0'
     implementation files('libs/NeftaAMAdapter-release.aar')
     implementation files('libs/NeftaPlugin-release.aar')
+    implementation files('libs/NDebug-release.aar')
 }

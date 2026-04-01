@@ -97,7 +97,7 @@ public class Rewarded extends TableLayout {
             _handler.postDelayed(() -> {
                 _state = State.Idle;
                 RetryLoadTracks();
-            }, 5000);
+            }, (int)(NeftaAdapter.GetRetryDelayInSeconds(_insight) * 1000));
         }
 
         public boolean TryShow(Activity activity) {
@@ -216,7 +216,7 @@ public class Rewarded extends TableLayout {
             } else {
                 track.AfterLoadFail();
             }
-        }, 5);
+        });
     }
 
     private void LoadDefault(Track track) {

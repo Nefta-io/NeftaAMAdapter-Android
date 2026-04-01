@@ -34,8 +34,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_span="2"
-            android:text="MAX Integration"
             android:gravity="center"
+            android:text="AdMob Integration"
             android:textColor="#000000"
             android:textSize="24sp" />
       </TableRow>
@@ -399,31 +399,6 @@
         </com.nefta.am.Rewarded>
       </TableRow>
     </TableLayout>
-
-    <com.nefta.am.SimulatorAd
-        android:id="@+id/simulator_ad"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#FFFFFFFF"
-        android:visibility="visible">
-
-      <Button
-          android:id="@+id/ad_close"
-          android:layout_width="wrap_content"
-          android:layout_height="wrap_content"
-          android:layout_gravity="right|top"
-          android:background="@drawable/button"
-          android:text="X"
-          android:textColor="#FFFFFF" />
-
-      <TextView
-          android:id="@+id/ad_title"
-          android:layout_width="wrap_content"
-          android:layout_height="wrap_content"
-          android:layout_gravity="center"
-          android:text="Ad"
-          android:textSize="34sp" />
-    </com.nefta.am.SimulatorAd>
 
   </FrameLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

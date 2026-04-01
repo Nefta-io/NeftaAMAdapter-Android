@@ -15,6 +15,8 @@ import com.google.android.gms.ads.OnPaidEventListener;
 import com.google.android.gms.ads.ResponseInfo;
 import com.google.android.gms.ads.interstitial.InterstitialAd;
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
+import com.nefta.debug.Callback;
+import com.nefta.debug.NDebug;
 
 public class SInterstitialAd extends InterstitialAd {
 
@@ -112,17 +114,30 @@ public class SInterstitialAd extends InterstitialAd {
 
     @Override
     public void show(@NonNull Activity activity) {
-        SimulatorAd.Instance.Show("Interstitial",
-                () -> {
-                    _fullScreenCallback.onAdShowedFullScreenContent();
-                    _onPaidEventHandler.onPaidEvent(AdValue.zza(AdValue.PrecisionType.PRECISE, "USD", (long)(_cost * 1000000)));
-                },
-                () -> {
-                    _fullScreenCallback.onAdClicked();
-                },
-                null,
-                () -> {
-                    _fullScreenCallback.onAdDismissedFullScreenContent();
-                });
+        NDebug.Open("Interstitial",
+                activity,
+                new Callback() {
+                    @Override
+                    public void onShow() {
+                        _fullScreenCallback.onAdShowedFullScreenContent();
+                        _onPaidEventHandler.onPaidEvent(AdValue.zza(AdValue.PrecisionType.PRECISE, "USD", (long)(_cost * 1000000)));
+                    }
+
+                    @Override
+                    public void onClick() {
+                        _fullScreenCallback.onAdClicked();
+                    }
+
+                    @Override
+                    public void onReward() {
+
+                    }
+
+                    @Override
+                    public void onClose() {
+                        _fullScreenCallback.onAdDismissedFullScreenContent();
+                    }
+                }
+        );
     }
 }

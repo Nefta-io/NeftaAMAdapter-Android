@@ -20,6 +20,8 @@ import com.google.android.gms.ads.rewarded.RewardItem;
 import com.google.android.gms.ads.rewarded.RewardedAd;
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
 import com.google.android.gms.ads.rewarded.ServerSideVerificationOptions;
+import com.nefta.debug.Callback;
+import com.nefta.debug.NDebug;
 
 public class SRewardedAd extends RewardedAd {
     private String _adUnitId;
@@ -145,30 +147,41 @@ public class SRewardedAd extends RewardedAd {
 
     @Override
     public void show(@NonNull Activity activity, @NonNull OnUserEarnedRewardListener onUserEarnedRewardListener) {
-        SimulatorAd.Instance.Show("Rewarded",
-                () -> {
-                    _fullScreenCallback.onAdShowedFullScreenContent();
-                    _onPaidEventHandler.onPaidEvent(AdValue.zza(AdValue.PrecisionType.PRECISE, "USD", (long)(_cost * 1000000)));
-                },
-                () -> {
-                    _fullScreenCallback.onAdClicked();
-                },
-                () -> {
-                    onUserEarnedRewardListener.onUserEarnedReward(new RewardItem() {
-                        @Override
-                        public int getAmount() {
-                            return 1;
-                        }
+        NDebug.Open("Rewarded",
+                activity,
+                new Callback() {
+                    @Override
+                    public void onShow() {
+                        _fullScreenCallback.onAdShowedFullScreenContent();
+                        _onPaidEventHandler.onPaidEvent(AdValue.zza(AdValue.PrecisionType.PRECISE, "USD", (long)(_cost * 1000000)));
+                    }
 
-                        @NonNull
-                        @Override
-                        public String getType() {
-                            return "sim reward";
-                        }
-                    });
-                },
-                () -> {
-                    _fullScreenCallback.onAdDismissedFullScreenContent();
-                });
+                    @Override
+                    public void onClick() {
+                        _fullScreenCallback.onAdClicked();
+                    }
+
+                    @Override
+                    public void onReward() {
+                        onUserEarnedRewardListener.onUserEarnedReward(new RewardItem() {
+                            @Override
+                            public int getAmount() {
+                                return 1;
+                            }
+
+                            @NonNull
+                            @Override
+                            public String getType() {
+                                return "sim reward";
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onClose() {
+                        _fullScreenCallback.onAdDismissedFullScreenContent();
+                    }
+                }
+        );
     }
 }
