@@ -8,8 +8,8 @@ android {
         applicationId "com.nefta.am"
         minSdk 23
         targetSdk 34
-        versionCode 308
-        versionName "4.5.0"
+        versionCode 309
+        versionName "4.5.1"
         multiDexEnabled true
         android.buildFeatures.buildConfig true
         def localProperties = new Properties()
