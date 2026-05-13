@@ -16,8 +16,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
 
-    private boolean _isSimulator;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate( savedInstanceState );
@@ -28,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
 
         NeftaPlugin.EnableLogging(true);
         NeftaAdapter.InitWithAppId(this, "5713110509813760", (InitConfiguration config) -> {
-            Log.i("NeftaPluginAM", "Should skip Nefta optimization: " + config._skipOptimization + " for: " + config._nuid);
+            Log.i("NeftaPluginAM", "Nefta initialized, nuid: " + config._nuid);
         });
 
         new Thread(() -> {
@@ -45,17 +43,33 @@ public class MainActivity extends AppCompatActivity {
     private void InitUI() {
         TextView title = findViewById(R.id.title);
         title.setText("AdMob Integration "+ MobileAds.getVersion());
-        title.setOnClickListener(v -> ToggleUI(!_isSimulator));
-        ToggleUI(BuildConfig.IS_SIMULATOR);
-    }
 
-    private void ToggleUI(boolean isSimulator) {
-        _isSimulator = isSimulator;
+        findViewById(R.id.control).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                findViewById(R.id.groupView).setVisibility(View.GONE);
 
-        findViewById(R.id.interstitialSim).setVisibility(_isSimulator ? View.VISIBLE : View.GONE);
-        findViewById(R.id.rewardedSim).setVisibility(_isSimulator ? View.VISIBLE : View.GONE);
+                ((InterstitialUi)findViewById(R.id.interstitial)).Init(new InterstitialDefault());
+                ((RewardedUi)findViewById(R.id.rewarded)).Init(new RewardedDefault());
+            }
+        });
+        findViewById(R.id.optimized).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                findViewById(R.id.groupView).setVisibility(View.GONE);
 
-        findViewById(R.id.interstitial).setVisibility(_isSimulator ? View.GONE : View.VISIBLE);
-        findViewById(R.id.rewarded).setVisibility(_isSimulator ? View.GONE : View.VISIBLE);
+                ((InterstitialUi)findViewById(R.id.interstitial)).Init(new InterstitialOptimized());
+                ((RewardedUi)findViewById(R.id.rewarded)).Init(new RewardedOptimized());
+            }
+        });
+        findViewById(R.id.simulator).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                findViewById(R.id.groupView).setVisibility(View.GONE);
+
+                findViewById(R.id.interstitialSim).setVisibility(View.VISIBLE);
+                findViewById(R.id.rewardedSim).setVisibility(View.VISIBLE);
+            }
+        });
     }
 }
